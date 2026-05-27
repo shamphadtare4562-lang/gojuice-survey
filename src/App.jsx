@@ -101,12 +101,12 @@ function RadioInput({options,value,onChange,accent=C.forest}){
   return(
     <div style={{display:"flex",flexDirection:"column",gap:8,marginTop:12}}>
       {options.map(opt=>(
-        <label key={opt} style={{display:"flex",alignItems:"flex-start",gap:12,cursor:"pointer",padding:"10px 16px",borderRadius:10,border:`1.5px solid ${value===opt?accent:C.greyLight}`,background:value===opt?`${accent}14`:C.white,transition:"all 0.15s"}}>
+        <div key={opt} onClick={()=>onChange(opt)} style={{display:"flex",alignItems:"flex-start",gap:12,cursor:"pointer",padding:"10px 16px",borderRadius:10,border:`1.5px solid ${value===opt?accent:C.greyLight}`,background:value===opt?`${accent}14`:C.white,transition:"all 0.15s"}}>
           <div style={{width:20,height:20,borderRadius:"50%",flexShrink:0,marginTop:1,border:`2px solid ${value===opt?accent:C.grey}`,background:value===opt?accent:C.white,display:"flex",alignItems:"center",justifyContent:"center"}}>
             {value===opt&&<div style={{width:8,height:8,borderRadius:"50%",background:C.white}}/>}
           </div>
           <span style={{fontSize:13,color:C.slate,lineHeight:1.5}}>{opt}</span>
-        </label>
+        </div>
       ))}
     </div>
   );
@@ -117,12 +117,12 @@ function CheckboxInput({options,value=[],onChange,accent=C.forest}){
   return(
     <div style={{display:"flex",flexDirection:"column",gap:8,marginTop:12}}>
       {options.map(opt=>(
-        <label key={opt} style={{display:"flex",alignItems:"flex-start",gap:12,cursor:"pointer",padding:"10px 16px",borderRadius:10,border:`1.5px solid ${value.includes(opt)?accent:C.greyLight}`,background:value.includes(opt)?`${accent}14`:C.white,transition:"all 0.15s"}}>
+        <div key={opt} onClick={()=>toggle(opt)} style={{display:"flex",alignItems:"flex-start",gap:12,cursor:"pointer",padding:"10px 16px",borderRadius:10,border:`1.5px solid ${value.includes(opt)?accent:C.greyLight}`,background:value.includes(opt)?`${accent}14`:C.white,transition:"all 0.15s"}}>
           <div style={{width:20,height:20,borderRadius:5,flexShrink:0,marginTop:1,border:`2px solid ${value.includes(opt)?accent:C.grey}`,background:value.includes(opt)?accent:C.white,display:"flex",alignItems:"center",justifyContent:"center"}}>
             {value.includes(opt)&&<span style={{color:C.white,fontSize:12,fontWeight:900,lineHeight:1}}>✓</span>}
           </div>
           <span style={{fontSize:13,color:C.slate,lineHeight:1.5}}>{opt}</span>
-        </label>
+        </div>
       ))}
     </div>
   );
