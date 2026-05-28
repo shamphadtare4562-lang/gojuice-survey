@@ -350,45 +350,13 @@ export default function App(){
   const [view,setView]=useState("survey");
   const [section,setSection]=useState(0);
   const [answers,setAnswers]=useState({});
-  const [errors,setErrors]=useState([]);
   const [submitting,setSubmitting]=useState(false);
 
   if(view==="analytics") return <Analytics onBack={()=>setView("survey")}/>;
 
   const sec=SECTIONS[section];
   const total=SECTIONS.length;
-  const pct=Math.round((section/total)*100);
   const set=(id,val)=>setAnswers(p=>({...p,[id]:val}));
-
-  const validate=()=>{
-    const missing=sec.questions.filter(q=>!q.optional&&q.type!=="text").filter(q=>{
-      const v=answers[q.id];
-      return q.type==="checkbox"?!v||v.length===0:v===undefined||v===null||v==="";
-    });
-    setErrors(missing.map(q=>q.id));
-    return missing.length===0;
-  };
-
-  const next=async()=>{
-    if(!validate())return;
-    setErrors([]);
-    if(section<total-1){setSection(s=>s+1);window.scrollTo(0,0);}
-    else{
-      setSubmitting(true);
-      const data={...answers,ts:new Date().toISOString()};
-      const ok=await submitResponse(data);
-      if(!ok){
-        // fallback to localStorage if API not available
-        try{
-          const saved=localStorage.getItem("gj_nutrition_v1");
-          const existing=saved?JSON.parse(saved):[];
-          localStorage.setItem("gj_nutrition_v1",JSON.stringify([...existing,data]));
-        }catch{}
-      }
-      setSubmitting(false);
-      setView("done");
-    }
-  };
 
   if(view==="done") return(
     <div style={{minHeight:"100vh",background:`linear-gradient(135deg,${C.forestDark},${C.forestLight})`,display:"flex",alignItems:"center",justifyContent:"center",padding:24}}>
@@ -426,7 +394,7 @@ export default function App(){
           </div>
           <div style={{display:"flex",gap:0,marginTop:10,overflowX:"auto"}}>
             {SECTIONS.map((s,i)=>(
-              <div key={s.id} style={{padding:"5px 10px",fontSize:10,color:i===section?C.gold:C.mintDark,borderBottom:`2px solid ${i===section?C.gold:"transparent"}`,fontWeight:i===section?700:400,whiteSpace:"nowrap"}}>
+              <div key={s.id} onClick={()=>{setSection(i);window.scrollTo(0,0);}} style={{padding:"5px 10px",fontSize:10,color:i===section?C.gold:C.mintDark,borderBottom:`2px solid ${i===section?C.gold:"transparent"}`,fontWeight:i===section?700:400,whiteSpace:"nowrap",cursor:"pointer"}}>
                 {s.icon} {s.title}
               </div>
             ))}
@@ -453,12 +421,11 @@ export default function App(){
 
         <div style={{display:"flex",flexDirection:"column",gap:20}}>
           {sec.questions.map((q,qi)=>(
-            <div key={q.id} style={{background:C.white,borderRadius:16,padding:"20px 22px",boxShadow:"0 2px 12px rgba(0,0,0,0.05)",border:`1.5px solid ${errors.includes(q.id)?C.red:C.greyLight}`,transition:"border-color 0.2s"}}>
+            <div key={q.id} style={{background:C.white,borderRadius:16,padding:"20px 22px",boxShadow:"0 2px 12px rgba(0,0,0,0.05)",border:`1.5px solid ${C.greyLight}`,transition:"border-color 0.2s"}}>
               <div style={{display:"flex",gap:10,alignItems:"flex-start",marginBottom:4}}>
                 <div style={{width:24,height:24,borderRadius:"50%",background:sec.color||C.forest,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:900,color:C.white,flexShrink:0,marginTop:1}}>{qi+1}</div>
                 <p style={{fontSize:14,fontWeight:600,color:C.slate,lineHeight:1.6,margin:0}}>{q.text}{q.optional&&<span style={{fontSize:11,color:C.grey,fontWeight:400,marginLeft:6}}>(Optional)</span>}</p>
               </div>
-              {errors.includes(q.id)&&<p style={{fontSize:11,color:C.red,margin:"4px 0 0 34px",fontWeight:600}}>⚠ Please answer this question to continue</p>}
               <div style={{marginLeft:34}}>
                 {q.type==="radio"&&<RadioInput options={q.options} value={answers[q.id]} onChange={v=>set(q.id,v)} accent={sec.color||C.forest}/>}
                 {q.type==="checkbox"&&<CheckboxInput options={q.options} value={answers[q.id]} onChange={v=>set(q.id,v)} accent={sec.color||C.forest}/>}
@@ -472,14 +439,27 @@ export default function App(){
 
       <div style={{position:"fixed",bottom:0,left:0,right:0,background:C.white,borderTop:`1px solid ${C.greyLight}`,padding:"14px 20px",boxShadow:"0 -4px 20px rgba(0,0,0,0.08)"}}>
         <div style={{maxWidth:680,margin:"0 auto",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-          <button onClick={()=>{if(section>0){setSection(s=>s-1);setErrors([]);}}} disabled={section===0}
+          <button onClick={()=>{if(section>0){setSection(s=>s-1);window.scrollTo(0,0);}}} disabled={section===0}
             style={{padding:"11px 22px",background:C.white,color:section===0?C.grey:C.forest,border:`2px solid ${section===0?C.greyLight:C.forest}`,borderRadius:10,fontWeight:700,cursor:section===0?"default":"pointer",fontFamily:"inherit",fontSize:13,opacity:section===0?0.5:1}}>
             ← Back
           </button>
-          <span style={{fontSize:12,color:C.grey}}>{pct}% complete</span>
-          <button onClick={next} disabled={submitting} style={{padding:"11px 26px",background:sec.color||C.forest,color:C.white,border:"none",borderRadius:10,fontWeight:700,cursor:submitting?"wait":"pointer",fontFamily:"inherit",fontSize:13,boxShadow:`0 4px 16px ${sec.color||C.forest}44`,opacity:submitting?0.7:1}}>
-            {submitting?"Saving...":section===total-1?"Submit ✓":"Next →"}
-          </button>
+          <span style={{fontSize:12,color:C.grey}}>Section {section+1} of {total}</span>
+          <div style={{display:"flex",gap:8}}>
+            {section<total-1&&(
+              <button onClick={next} style={{padding:"11px 22px",background:C.white,color:sec.color||C.forest,border:`2px solid ${sec.color||C.forest}`,borderRadius:10,fontWeight:700,cursor:"pointer",fontFamily:"inherit",fontSize:13}}>
+                Next →
+              </button>
+            )}
+            <button onClick={async()=>{
+              setSubmitting(true);
+              const data={...answers,ts:new Date().toISOString()};
+              const ok=await submitResponse(data);
+              if(!ok){try{const saved=localStorage.getItem("gj_nutrition_v1");const existing=saved?JSON.parse(saved):[];localStorage.setItem("gj_nutrition_v1",JSON.stringify([...existing,data]));}catch{}}
+              setSubmitting(false);setView("done");
+            }} disabled={submitting} style={{padding:"11px 22px",background:sec.color||C.forest,color:C.white,border:"none",borderRadius:10,fontWeight:700,cursor:submitting?"wait":"pointer",fontFamily:"inherit",fontSize:13,boxShadow:`0 4px 16px ${sec.color||C.forest}44`,opacity:submitting?0.7:1}}>
+              {submitting?"Saving...":"Submit ✓"}
+            </button>
+          </div>
         </div>
       </div>
     </div>
