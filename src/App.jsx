@@ -167,6 +167,23 @@ function Analytics({onBack}){
   const [loading,setLoading]=useState(true);
   const [source,setSource]=useState("shared");
 
+  useEffect(()=>{
+    if(!unlocked) return;
+    async function load(){
+      setLoading(true);
+      const shared=await fetchResponses();
+      if(shared&&shared.length>=0){setResponses(shared);setSource("shared");}
+      else{
+        try{const saved=localStorage.getItem("gj_nutrition_v1");setResponses(saved?JSON.parse(saved):[]);setSource("local");}
+        catch{setResponses([]);}
+      }
+      setLoading(false);
+    }
+    load();
+  },[]);
+
+  const n=responses.length;
+
   if(!unlocked) return(
     <div style={{minHeight:"100vh",background:`linear-gradient(135deg,${C.forestDark},${C.forestLight})`,display:"flex",alignItems:"center",justifyContent:"center",padding:24}}>
       <div style={{background:C.white,borderRadius:24,padding:48,maxWidth:380,width:"100%",textAlign:"center",boxShadow:"0 16px 64px rgba(0,0,0,0.2)"}}>
@@ -191,22 +208,6 @@ function Analytics({onBack}){
       </div>
     </div>
   );
-
-  useEffect(()=>{
-    async function load(){
-      setLoading(true);
-      const shared=await fetchResponses();
-      if(shared&&shared.length>=0){setResponses(shared);setSource("shared");}
-      else{
-        try{const saved=localStorage.getItem("gj_nutrition_v1");setResponses(saved?JSON.parse(saved):[]);setSource("local");}
-        catch{setResponses([]);}
-      }
-      setLoading(false);
-    }
-    load();
-  },[]);
-
-  const n=responses.length;
 
   if(loading) return(
     <div style={{minHeight:"100vh",background:C.off,display:"flex",alignItems:"center",justifyContent:"center"}}>
