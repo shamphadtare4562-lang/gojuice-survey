@@ -11,7 +11,6 @@ const C = {
 };
 const PIES=["#2D6A4F","#40916C","#D4A017","#1A5276","#CA6F1E","#6C3483","#C0392B","#74C69D"];
 
-// ─── Shared DB helpers ────────────────────────────────────────────
 async function submitResponse(data) {
   try {
     const res = await fetch("/api/responses", {
@@ -20,9 +19,7 @@ async function submitResponse(data) {
       body: JSON.stringify(data),
     });
     return res.ok;
-  } catch {
-    return false;
-  }
+  } catch { return false; }
 }
 
 async function fetchResponses() {
@@ -31,11 +28,8 @@ async function fetchResponses() {
     if (!res.ok) return null;
     const { responses } = await res.json();
     return responses;
-  } catch {
-    return null;
-  }
+  } catch { return null; }
 }
-// ─────────────────────────────────────────────────────────────────
 
 const SECTIONS = [
   {
@@ -54,15 +48,20 @@ const SECTIONS = [
       {id:"q5",type:"radio",text:"When you pick up a food or supplement product, how often do you read the nutrition label?",options:["Always — it is the first thing I check","Usually — I check it most of the time","Sometimes — only if I am curious","Rarely — I rely on the brand name or packaging design"]},
       {id:"q6",type:"checkbox",text:"Which nutrition label claims would most influence you to try a new natural food product? (Select all that apply)",options:["Source of dietary fibre","High in Vitamin C","No added sugars","Low calorie","No artificial additives","Organic certified","Non-GMO","Upcycled ingredients"]},
       {id:"q7",type:"radio",text:"How important is it that a food product's nutrition claims are verified by an independent authority (such as EFSA)?",options:["Very important — I only trust verified claims","Somewhat important — it adds credibility","Neutral — I judge by the ingredient list","Not important — I trust the brand itself"]},
-      {id:"q8",type:"radio",text:"When you see 'Source of Dietary Fibre' on a food label, what does it make you think?",options:["It supports good digestion — I would try it","It is a healthy and natural product","I don't really notice fibre claims","I am sceptical — it feels like marketing language"]},
     ]
   },
   {
     id:"fibre_vitamin", title:"Fibre & Vitamin C Claims", icon:"🍋", color:"#40916C",
     intro:"GoJuice is a natural digestive powder made from pineapple, kiwi, ginger, and peppermint. Rate the following specific nutrition claims it could legally make under EU regulation.",
     questions:[
-      {id:"q9",type:"scale",text:"How trustworthy does 'Source of dietary fibre — supports your digestive system' feel on a natural fruit powder?"},
-      {id:"q10",type:"scale",text:"How likely would 'Source of Vitamin C' make you to pick up GoJuice at an airport convenience store?"},
+      {
+        id:"q9_10",
+        type:"dual_scale",
+        items:[
+          {id:"q9", label:"'Source of dietary fibre — supports your digestive system'", sublabel:"How trustworthy does this claim feel on a natural fruit powder?"},
+          {id:"q10", label:"'Source of Vitamin C'", sublabel:"How likely would this claim make you pick up GoJuice at an airport convenience store?"},
+        ]
+      },
       {id:"q11",type:"radio",text:"If you saw both 'Source of dietary fibre' AND 'Source of Vitamin C' on the GoJuice label together, how would that affect your perception?",options:["Very positive — confirms the product is genuinely nutritious","Positive — adds credibility to the natural positioning","Neutral — I would still focus on the ingredient list","Negative — it feels like over-claiming for a powder product"]},
       {id:"q12",type:"radio",text:"Between these two claims, which is more relevant to why you might use a digestive powder while travelling?",options:["Source of dietary fibre — directly linked to digestion","Source of Vitamin C — supports overall health and immunity","Both are equally relevant","Neither feels specifically relevant to digestive support"]},
     ]
@@ -86,8 +85,7 @@ const SECTIONS = [
       {id:"q19",type:"radio",text:"GoJuice's slogan is 'Travel Light. Digest Right.' Combined with nutrition claim badges, how well does this communicate the product's purpose?",options:["Very well — clear, memorable, and relevant to travel","Well — I understand the product immediately","Somewhat — the slogan is good but the claims feel generic","Poorly — it does not clearly communicate what the product does"]},
       {id:"q20",type:"checkbox",text:"Which phrases would you most want to see on a GoJuice label in addition to nutrition claims? (Select all that apply)",options:["'Made from upcycled fruits and herbs'","'Naturally occurring digestive enzymes'","'No pills. No chemicals. Just nature.'","'Dissolves in water in under 30 seconds'","'Suitable for all ages'","'EFSA compliant claims'","'Produced in the Netherlands'"]},
     ]
-  },
-
+  }
 ];
 
 function ScaleInput({value,onChange,accent=C.forest}){
@@ -110,6 +108,20 @@ function ScaleInput({value,onChange,accent=C.forest}){
       <div style={{display:"flex",justifyContent:"space-between",marginTop:8,fontSize:11,color:C.grey,padding:"0 6px"}}>
         <span>1 = Not at all</span><span>5 = Strongly agree</span>
       </div>
+    </div>
+  );
+}
+
+function DualScaleInput({items,values={},onChange,accent=C.forest}){
+  return(
+    <div style={{display:"flex",flexDirection:"column",gap:20,marginTop:4}}>
+      {items.map(item=>(
+        <div key={item.id} style={{padding:"14px 16px",background:C.off,borderRadius:10,border:`1.5px solid ${C.greyLight}`}}>
+          <div style={{fontSize:13,fontWeight:700,color:C.slate,marginBottom:2}}>{item.label}</div>
+          <div style={{fontSize:12,color:C.grey,marginBottom:10}}>{item.sublabel}</div>
+          <ScaleInput value={values[item.id]} onChange={v=>onChange(item.id,v)} accent={accent}/>
+        </div>
+      ))}
     </div>
   );
 }
@@ -154,15 +166,10 @@ function Analytics({onBack}){
     async function load(){
       setLoading(true);
       const shared=await fetchResponses();
-      if(shared&&shared.length>=0){
-        setResponses(shared);
-        setSource("shared");
-      } else {
-        try{
-          const saved=localStorage.getItem("gj_nutrition_v1");
-          setResponses(saved?JSON.parse(saved):[]);
-          setSource("local");
-        }catch{ setResponses([]); }
+      if(shared&&shared.length>=0){setResponses(shared);setSource("shared");}
+      else{
+        try{const saved=localStorage.getItem("gj_nutrition_v1");setResponses(saved?JSON.parse(saved):[]);setSource("local");}
+        catch{setResponses([]);}
       }
       setLoading(false);
     }
@@ -197,7 +204,6 @@ function Analytics({onBack}){
 
   const fibreScore=parseFloat(avg(["q9"]));
   const vitCScore=parseFloat(avg(["q10"]));
-  const purchaseScore=parseFloat(avg(["q21"]));
   const noSugarScore=parseFloat(avg(["q13"]));
 
   const claimsBar=[
@@ -209,10 +215,8 @@ function Analytics({onBack}){
 
   const labelPref=optPie("q17",SECTIONS[4].questions[0].options);
   const sugarImpact=optPie("q15",SECTIONS[3].questions[2].options);
-  const priceData=SECTIONS[5].questions[3].options.map(o=>({name:o,value:responses.filter(r=>r.q24===o).length}));
   const claimChecks=checkData("q6",SECTIONS[1].questions[1].options);
   const extraPhrases=checkData("q20",SECTIONS[4].questions[3].options);
-  const openTexts=responses.map(r=>r.q25).filter(Boolean);
 
   const exportCSV=()=>{
     if(!responses.length)return;
@@ -236,9 +240,7 @@ function Analytics({onBack}){
           <span style={{fontSize:24}}>🌿</span>
           <div>
             <div style={{fontSize:16,fontWeight:700,color:C.white}}>GoJuice — Nutrition Claims Analytics</div>
-            <div style={{fontSize:11,color:C.mintDark}}>
-              {n} response{n!==1?"s":""} | {source==="shared"?"🟢 Live shared database":"🟡 Local device only"} | Van Hall Larenstein
-            </div>
+            <div style={{fontSize:11,color:C.mintDark}}>{n} response{n!==1?"s":""} | {source==="shared"?"🟢 Live shared database":"🟡 Local device only"} | Van Hall Larenstein</div>
           </div>
         </div>
         <div style={{display:"flex",gap:10}}>
@@ -249,20 +251,11 @@ function Analytics({onBack}){
       </div>
 
       <div style={{maxWidth:960,margin:"0 auto",padding:"32px 24px 60px"}}>
-        <div style={{background:C.mint,border:`2px solid ${C.forest}`,borderRadius:14,padding:"16px 24px",marginBottom:24,display:"flex",alignItems:"flex-start",gap:14}}>
-          <span style={{fontSize:28,flexShrink:0}}>💡</span>
-          <div>
-            <div style={{fontSize:14,fontWeight:700,color:C.forestDark,marginBottom:4}}>Survey Focus — Based on Business Owner Expert Interview</div>
-            <div style={{fontSize:13,color:C.slateLight,lineHeight:1.7}}>This survey focuses on <strong>nutrition claims</strong> (source of fibre, source of Vitamin C, no added sugars, low calorie) following expert advice that health claims carry significantly higher regulatory risk for a startup at GoJuice's stage.</div>
-          </div>
-        </div>
-
-        <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:16,marginBottom:24}}>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:16,marginBottom:24}}>
           {[
             {val:n,label:"Total Responses",sub:n<30?"⚠ Need 30+ for reliability":"✅ Good sample size",color:n<30?C.red:C.forest},
             {val:`${fibreScore}/5`,label:"Fibre Claim Score",sub:"Trustworthiness rating",color:C.forestLight},
             {val:`${vitCScore}/5`,label:"Vitamin C Claim Score",sub:"Purchase influence rating",color:C.gold},
-            {val:`${purchaseScore}/5`,label:"Purchase Likelihood",sub:"With all 4 nutrition claims",color:C.orange},
           ].map((k,i)=>(
             <div key={i} style={{background:C.white,borderRadius:16,padding:"20px 24px",boxShadow:"0 2px 16px rgba(0,0,0,0.06)",border:`1.5px solid ${C.greyLight}`,position:"relative",overflow:"hidden"}}>
               <div style={{position:"absolute",top:0,left:0,right:0,height:4,background:k.color,borderRadius:"16px 16px 0 0"}}/>
@@ -274,7 +267,7 @@ function Analytics({onBack}){
         </div>
 
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16,marginBottom:16}}>
-          <Card title="Nutrition Claim Trustworthiness — Avg Score /5" accent={C.forest}>
+          <Card title="Nutrition Claim Scores — Avg /5" accent={C.forest}>
             <ResponsiveContainer width="100%" height={200}>
               <BarChart data={claimsBar} margin={{left:-20}}>
                 <CartesianGrid strokeDasharray="3 3" stroke={C.greyLight}/>
@@ -285,7 +278,7 @@ function Analytics({onBack}){
               </BarChart>
             </ResponsiveContainer>
           </Card>
-          <Card title="Most Influential Nutrition Claims (Selected by Respondents)" accent={C.blue}>
+          <Card title="Most Influential Nutrition Claims" accent={C.blue}>
             <ResponsiveContainer width="100%" height={200}>
               <BarChart data={claimChecks} layout="vertical" margin={{left:0,right:8}}>
                 <XAxis type="number" tick={{fontSize:10,fill:C.grey}}/>
@@ -297,7 +290,7 @@ function Analytics({onBack}){
           </Card>
         </div>
 
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:16,marginBottom:16}}>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16,marginBottom:16}}>
           <Card title="Label Approach Preference" accent={C.purple}>
             <ResponsiveContainer width="100%" height={190}>
               <PieChart><Pie data={labelPref} dataKey="value" cx="50%" cy="50%" outerRadius={60} label={({percent})=>`${(percent*100).toFixed(0)}%`} labelLine={false} fontSize={10}>{labelPref.map((_,i)=><Cell key={i} fill={PIES[i]}/>)}</Pie><Tooltip formatter={v=>[v,"Responses"]} contentStyle={{borderRadius:8,fontSize:12}}/><Legend iconSize={10} wrapperStyle={{fontSize:9}}/></PieChart>
@@ -306,17 +299,6 @@ function Analytics({onBack}){
           <Card title="No Added Sugars / Stevia Impact on Purchase" accent={C.gold}>
             <ResponsiveContainer width="100%" height={190}>
               <PieChart><Pie data={sugarImpact} dataKey="value" cx="50%" cy="50%" outerRadius={60} label={({percent})=>`${(percent*100).toFixed(0)}%`} labelLine={false} fontSize={10}>{sugarImpact.map((_,i)=><Cell key={i} fill={PIES[i]}/>)}</Pie><Tooltip formatter={v=>[v,"Responses"]} contentStyle={{borderRadius:8,fontSize:12}}/><Legend iconSize={10} wrapperStyle={{fontSize:9}}/></PieChart>
-            </ResponsiveContainer>
-          </Card>
-          <Card title="Max Willingness to Pay per 7g Sachet" accent={C.orange}>
-            <ResponsiveContainer width="100%" height={190}>
-              <BarChart data={priceData} margin={{left:-20}}>
-                <CartesianGrid strokeDasharray="3 3" stroke={C.greyLight}/>
-                <XAxis dataKey="name" tick={{fontSize:9,fill:C.grey}}/>
-                <YAxis tick={{fontSize:11,fill:C.grey}}/>
-                <Tooltip contentStyle={{borderRadius:8,fontSize:12}}/>
-                <Bar dataKey="value" fill={C.orange} radius={[6,6,0,0]}/>
-              </BarChart>
             </ResponsiveContainer>
           </Card>
         </div>
@@ -331,16 +313,6 @@ function Analytics({onBack}){
             </BarChart>
           </ResponsiveContainer>
         </Card>
-
-        {openTexts.length>0&&(
-          <div style={{marginTop:16,background:C.white,borderRadius:16,padding:"20px 24px",boxShadow:"0 2px 16px rgba(0,0,0,0.06)",border:`1.5px solid ${C.greyLight}`,position:"relative",overflow:"hidden"}}>
-            <div style={{position:"absolute",top:0,left:0,right:0,height:4,background:C.forestLight,borderRadius:"16px 16px 0 0"}}/>
-            <div style={{fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:"1.2px",color:C.grey,marginBottom:16}}>Open Responses — What Claim Would Make You Buy Immediately? ({openTexts.length})</div>
-            <div style={{display:"flex",flexDirection:"column",gap:8,maxHeight:200,overflowY:"auto"}}>
-              {openTexts.map((t,i)=><div key={i} style={{padding:"8px 14px",background:C.off,borderRadius:8,fontSize:13,color:C.slate,borderLeft:`3px solid ${C.forest}`,lineHeight:1.6}}>"{t}"</div>)}
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );
@@ -356,7 +328,25 @@ export default function App(){
 
   const sec=SECTIONS[section];
   const total=SECTIONS.length;
+  const pct=Math.round(((section+1)/total)*100);
   const set=(id,val)=>setAnswers(p=>({...p,[id]:val}));
+  const setDual=(id,val)=>setAnswers(p=>({...p,[id]:val}));
+  const goTo=(i)=>{setSection(i);window.scrollTo(0,0);};
+
+  const submit=async()=>{
+    setSubmitting(true);
+    const data={...answers,ts:new Date().toISOString()};
+    const ok=await submitResponse(data);
+    if(!ok){
+      try{
+        const saved=localStorage.getItem("gj_nutrition_v1");
+        const existing=saved?JSON.parse(saved):[];
+        localStorage.setItem("gj_nutrition_v1",JSON.stringify([...existing,data]));
+      }catch{}
+    }
+    setSubmitting(false);
+    setView("done");
+  };
 
   if(view==="done") return(
     <div style={{minHeight:"100vh",background:`linear-gradient(135deg,${C.forestDark},${C.forestLight})`,display:"flex",alignItems:"center",justifyContent:"center",padding:24}}>
@@ -365,7 +355,7 @@ export default function App(){
         <h2 style={{fontSize:26,fontWeight:900,color:C.forestDark,marginBottom:12}}>Thank you!</h2>
         <p style={{fontSize:14,color:C.slateLight,lineHeight:1.8,marginBottom:28}}>Your response has been recorded and will contribute to the GoJuice nutrition claims research at Van Hall Larenstein University. We appreciate your time.</p>
         <div style={{display:"flex",gap:10,justifyContent:"center",flexWrap:"wrap"}}>
-          <button onClick={()=>{setAnswers({});setSection(0);setView("survey");setErrors([]);}} style={{padding:"11px 22px",background:C.forest,color:C.white,border:"none",borderRadius:10,fontWeight:700,cursor:"pointer",fontFamily:"inherit",fontSize:13}}>Fill Again</button>
+          <button onClick={()=>{setAnswers({});setSection(0);setView("survey");}} style={{padding:"11px 22px",background:C.forest,color:C.white,border:"none",borderRadius:10,fontWeight:700,cursor:"pointer",fontFamily:"inherit",fontSize:13}}>Fill Again</button>
           <button onClick={()=>setView("analytics")} style={{padding:"11px 22px",background:C.white,color:C.forest,border:`2px solid ${C.forest}`,borderRadius:10,fontWeight:700,cursor:"pointer",fontFamily:"inherit",fontSize:13}}>View Analytics 📊</button>
         </div>
       </div>
@@ -374,6 +364,7 @@ export default function App(){
 
   return(
     <div style={{minHeight:"100vh",background:C.off}}>
+      {/* Sticky header */}
       <div style={{background:C.forestDark,padding:"16px 24px",position:"sticky",top:0,zIndex:100,boxShadow:"0 2px 12px rgba(0,0,0,0.15)"}}>
         <div style={{maxWidth:680,margin:"0 auto"}}>
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
@@ -385,16 +376,25 @@ export default function App(){
               </div>
             </div>
             <div style={{display:"flex",alignItems:"center",gap:10}}>
-              <span style={{fontSize:11,color:C.mintDark}}>{section+1}/{total}</span>
               <button onClick={()=>setView("analytics")} style={{padding:"6px 12px",background:C.gold,color:C.white,border:"none",borderRadius:7,fontWeight:700,fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>📊 Results</button>
             </div>
           </div>
+          {/* Progress bar */}
           <div style={{height:5,background:"rgba(255,255,255,0.15)",borderRadius:3}}>
             <div style={{height:"100%",width:`${pct}%`,background:C.gold,borderRadius:3,transition:"width 0.4s"}}/>
           </div>
+          {/* Section tabs — all clickable */}
           <div style={{display:"flex",gap:0,marginTop:10,overflowX:"auto"}}>
             {SECTIONS.map((s,i)=>(
-              <div key={s.id} onClick={()=>{setSection(i);window.scrollTo(0,0);}} style={{padding:"5px 10px",fontSize:10,color:i===section?C.gold:C.mintDark,borderBottom:`2px solid ${i===section?C.gold:"transparent"}`,fontWeight:i===section?700:400,whiteSpace:"nowrap",cursor:"pointer"}}>
+              <div key={s.id} onClick={()=>goTo(i)} style={{
+                padding:"6px 10px",fontSize:10,
+                color:i===section?C.gold:C.mintDark,
+                borderBottom:`2px solid ${i===section?C.gold:"transparent"}`,
+                fontWeight:i===section?700:400,
+                whiteSpace:"nowrap",cursor:"pointer",
+                transition:"all 0.15s",
+                borderRadius:"4px 4px 0 0",
+              }}>
                 {s.icon} {s.title}
               </div>
             ))}
@@ -402,6 +402,7 @@ export default function App(){
         </div>
       </div>
 
+      {/* Questions */}
       <div style={{maxWidth:680,margin:"0 auto",padding:"32px 20px 120px"}}>
         {section===0&&(
           <div style={{padding:"12px 16px",background:C.mint,borderRadius:10,borderLeft:`4px solid ${C.forest}`,fontSize:12,color:C.slateLight,lineHeight:1.7,marginBottom:24}}>
@@ -421,44 +422,60 @@ export default function App(){
 
         <div style={{display:"flex",flexDirection:"column",gap:20}}>
           {sec.questions.map((q,qi)=>(
-            <div key={q.id} style={{background:C.white,borderRadius:16,padding:"20px 22px",boxShadow:"0 2px 12px rgba(0,0,0,0.05)",border:`1.5px solid ${C.greyLight}`,transition:"border-color 0.2s"}}>
-              <div style={{display:"flex",gap:10,alignItems:"flex-start",marginBottom:4}}>
-                <div style={{width:24,height:24,borderRadius:"50%",background:sec.color||C.forest,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:900,color:C.white,flexShrink:0,marginTop:1}}>{qi+1}</div>
-                <p style={{fontSize:14,fontWeight:600,color:C.slate,lineHeight:1.6,margin:0}}>{q.text}{q.optional&&<span style={{fontSize:11,color:C.grey,fontWeight:400,marginLeft:6}}>(Optional)</span>}</p>
-              </div>
-              <div style={{marginLeft:34}}>
-                {q.type==="radio"&&<RadioInput options={q.options} value={answers[q.id]} onChange={v=>set(q.id,v)} accent={sec.color||C.forest}/>}
-                {q.type==="checkbox"&&<CheckboxInput options={q.options} value={answers[q.id]} onChange={v=>set(q.id,v)} accent={sec.color||C.forest}/>}
-                {q.type==="scale"&&<ScaleInput value={answers[q.id]} onChange={v=>set(q.id,v)} accent={sec.color||C.forest}/>}
-                {q.type==="text"&&<textarea value={answers[q.id]||""} onChange={e=>set(q.id,e.target.value)} placeholder="Type your answer here..." style={{width:"100%",minHeight:80,marginTop:10,padding:"10px 14px",border:`1.5px solid ${C.greyLight}`,borderRadius:8,fontSize:13,fontFamily:"inherit",color:C.slate,resize:"vertical",outline:"none",boxSizing:"border-box",lineHeight:1.6}}/>}
-              </div>
+            <div key={q.id} style={{background:C.white,borderRadius:16,padding:"20px 22px",boxShadow:"0 2px 12px rgba(0,0,0,0.05)",border:`1.5px solid ${C.greyLight}`}}>
+              {q.type==="dual_scale" ? (
+                <>
+                  <div style={{display:"flex",gap:10,alignItems:"flex-start",marginBottom:12}}>
+                    <div style={{width:24,height:24,borderRadius:"50%",background:sec.color||C.forest,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:900,color:C.white,flexShrink:0,marginTop:1}}>{qi+1}</div>
+                    <p style={{fontSize:14,fontWeight:600,color:C.slate,lineHeight:1.6,margin:0}}>Rate these nutrition claims <span style={{fontSize:11,color:C.grey,fontWeight:400}}>(1 = Not at all · 5 = Strongly agree)</span></p>
+                  </div>
+                  <div style={{marginLeft:34}}>
+                    <DualScaleInput
+                      items={q.items}
+                      values={answers}
+                      onChange={(id,v)=>set(id,v)}
+                      accent={sec.color||C.forest}
+                    />
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div style={{display:"flex",gap:10,alignItems:"flex-start",marginBottom:4}}>
+                    <div style={{width:24,height:24,borderRadius:"50%",background:sec.color||C.forest,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:900,color:C.white,flexShrink:0,marginTop:1}}>{qi+1}</div>
+                    <p style={{fontSize:14,fontWeight:600,color:C.slate,lineHeight:1.6,margin:0}}>{q.text}{q.optional&&<span style={{fontSize:11,color:C.grey,fontWeight:400,marginLeft:6}}>(Optional)</span>}</p>
+                  </div>
+                  <div style={{marginLeft:34}}>
+                    {q.type==="radio"&&<RadioInput options={q.options} value={answers[q.id]} onChange={v=>set(q.id,v)} accent={sec.color||C.forest}/>}
+                    {q.type==="checkbox"&&<CheckboxInput options={q.options} value={answers[q.id]} onChange={v=>set(q.id,v)} accent={sec.color||C.forest}/>}
+                    {q.type==="scale"&&<ScaleInput value={answers[q.id]} onChange={v=>set(q.id,v)} accent={sec.color||C.forest}/>}
+                    {q.type==="text"&&<textarea value={answers[q.id]||""} onChange={e=>set(q.id,e.target.value)} placeholder="Type your answer here..." style={{width:"100%",minHeight:80,marginTop:10,padding:"10px 14px",border:`1.5px solid ${C.greyLight}`,borderRadius:8,fontSize:13,fontFamily:"inherit",color:C.slate,resize:"vertical",outline:"none",boxSizing:"border-box",lineHeight:1.6}}/>}
+                  </div>
+                </>
+              )}
             </div>
           ))}
         </div>
       </div>
 
+      {/* Bottom navigation */}
       <div style={{position:"fixed",bottom:0,left:0,right:0,background:C.white,borderTop:`1px solid ${C.greyLight}`,padding:"14px 20px",boxShadow:"0 -4px 20px rgba(0,0,0,0.08)"}}>
         <div style={{maxWidth:680,margin:"0 auto",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-          <button onClick={()=>{if(section>0){setSection(s=>s-1);window.scrollTo(0,0);}}} disabled={section===0}
+          <button onClick={()=>goTo(section-1)} disabled={section===0}
             style={{padding:"11px 22px",background:C.white,color:section===0?C.grey:C.forest,border:`2px solid ${section===0?C.greyLight:C.forest}`,borderRadius:10,fontWeight:700,cursor:section===0?"default":"pointer",fontFamily:"inherit",fontSize:13,opacity:section===0?0.5:1}}>
             ← Back
           </button>
           <span style={{fontSize:12,color:C.grey}}>Section {section+1} of {total}</span>
           <div style={{display:"flex",gap:8}}>
             {section<total-1&&(
-              <button onClick={next} style={{padding:"11px 22px",background:C.white,color:sec.color||C.forest,border:`2px solid ${sec.color||C.forest}`,borderRadius:10,fontWeight:700,cursor:"pointer",fontFamily:"inherit",fontSize:13}}>
+              <button onClick={()=>goTo(section+1)} style={{padding:"11px 22px",background:sec.color||C.forest,color:C.white,border:"none",borderRadius:10,fontWeight:700,cursor:"pointer",fontFamily:"inherit",fontSize:13}}>
                 Next →
               </button>
             )}
-            <button onClick={async()=>{
-              setSubmitting(true);
-              const data={...answers,ts:new Date().toISOString()};
-              const ok=await submitResponse(data);
-              if(!ok){try{const saved=localStorage.getItem("gj_nutrition_v1");const existing=saved?JSON.parse(saved):[];localStorage.setItem("gj_nutrition_v1",JSON.stringify([...existing,data]));}catch{}}
-              setSubmitting(false);setView("done");
-            }} disabled={submitting} style={{padding:"11px 22px",background:sec.color||C.forest,color:C.white,border:"none",borderRadius:10,fontWeight:700,cursor:submitting?"wait":"pointer",fontFamily:"inherit",fontSize:13,boxShadow:`0 4px 16px ${sec.color||C.forest}44`,opacity:submitting?0.7:1}}>
-              {submitting?"Saving...":"Submit ✓"}
-            </button>
+            {section===total-1&&(
+              <button onClick={submit} disabled={submitting} style={{padding:"11px 26px",background:sec.color||C.forest,color:C.white,border:"none",borderRadius:10,fontWeight:700,cursor:submitting?"wait":"pointer",fontFamily:"inherit",fontSize:13,opacity:submitting?0.7:1}}>
+                {submitting?"Saving...":"Submit ✓"}
+              </button>
+            )}
           </div>
         </div>
       </div>
