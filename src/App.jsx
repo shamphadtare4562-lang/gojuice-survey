@@ -3,13 +3,39 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 
 const C = {
   forest:"#2D6A4F", forestLight:"#40916C", forestDark:"#1B4332",
-  mint:"#D8F3DC", mintDark:"#B7E4C7", cream:"#FEFDF8", off:"#F4F1E8",
-  gold:"#D4A017", goldLight:"#F3D77A", slate:"#2C3E50", slateLight:"#4A6278",
+  mint:"#D8F3DC", mintDark:"#B7E4C7", off:"#F4F1E8",
+  gold:"#D4A017", slate:"#2C3E50", slateLight:"#4A6278",
   white:"#FFFFFF", grey:"#8E9BAA", greyLight:"#E8EDF2",
   red:"#C0392B", blue:"#1A5276", purple:"#6C3483",
   orange:"#CA6F1E"
 };
 const PIES=["#2D6A4F","#40916C","#D4A017","#1A5276","#CA6F1E","#6C3483","#C0392B","#74C69D"];
+
+// ─── Shared DB helpers ────────────────────────────────────────────
+async function submitResponse(data) {
+  try {
+    const res = await fetch("/api/responses", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+async function fetchResponses() {
+  try {
+    const res = await fetch("/api/responses");
+    if (!res.ok) return null;
+    const { responses } = await res.json();
+    return responses;
+  } catch {
+    return null;
+  }
+}
+// ─────────────────────────────────────────────────────────────────
 
 const SECTIONS = [
   {
@@ -128,14 +154,47 @@ function CheckboxInput({options,value=[],onChange,accent=C.forest}){
   );
 }
 
-function Analytics({responses,onBack}){
+function Analytics({onBack}){
+  const [responses,setResponses]=useState([]);
+  const [loading,setLoading]=useState(true);
+  const [source,setSource]=useState("shared");
+
+  useEffect(()=>{
+    async function load(){
+      setLoading(true);
+      const shared=await fetchResponses();
+      if(shared&&shared.length>=0){
+        setResponses(shared);
+        setSource("shared");
+      } else {
+        try{
+          const saved=localStorage.getItem("gj_nutrition_v1");
+          setResponses(saved?JSON.parse(saved):[]);
+          setSource("local");
+        }catch{ setResponses([]); }
+      }
+      setLoading(false);
+    }
+    load();
+  },[]);
+
   const n=responses.length;
+
+  if(loading) return(
+    <div style={{minHeight:"100vh",background:C.off,display:"flex",alignItems:"center",justifyContent:"center"}}>
+      <div style={{textAlign:"center"}}>
+        <div style={{fontSize:48,marginBottom:12}}>🌿</div>
+        <div style={{fontSize:16,color:C.slate,fontWeight:600}}>Loading responses...</div>
+      </div>
+    </div>
+  );
+
   if(n===0) return(
     <div style={{minHeight:"100vh",background:C.off,display:"flex",alignItems:"center",justifyContent:"center"}}>
       <div style={{textAlign:"center",padding:60}}>
         <div style={{fontSize:64,marginBottom:16}}>📊</div>
         <p style={{fontSize:18,fontWeight:700,color:C.slate,marginBottom:8}}>No responses yet</p>
-        <p style={{fontSize:14,color:C.grey,marginBottom:24}}>Analytics appear once people complete the survey</p>
+        <p style={{fontSize:14,color:C.grey,marginBottom:24}}>Share the survey link and responses will appear here from all devices</p>
         <button onClick={onBack} style={{padding:"12px 28px",background:C.forest,color:C.white,border:"none",borderRadius:10,fontWeight:700,fontSize:14,cursor:"pointer",fontFamily:"inherit"}}>← Back to Survey</button>
       </div>
     </div>
@@ -165,6 +224,7 @@ function Analytics({responses,onBack}){
   const openTexts=responses.map(r=>r.q25).filter(Boolean);
 
   const exportCSV=()=>{
+    if(!responses.length)return;
     const keys=Object.keys(responses[0]);
     const csv=[keys.join(","),...responses.map(r=>keys.map(k=>`"${Array.isArray(r[k])?r[k].join("; "):r[k]||""}"`).join(","))].join("\n");
     const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv"}));a.download="GoJuice_Survey.csv";a.click();
@@ -185,10 +245,13 @@ function Analytics({responses,onBack}){
           <span style={{fontSize:24}}>🌿</span>
           <div>
             <div style={{fontSize:16,fontWeight:700,color:C.white}}>GoJuice — Nutrition Claims Analytics</div>
-            <div style={{fontSize:11,color:C.mintDark}}>{n} response{n!==1?"s":""} | IPRL Research | Van Hall Larenstein</div>
+            <div style={{fontSize:11,color:C.mintDark}}>
+              {n} response{n!==1?"s":""} | {source==="shared"?"🟢 Live shared database":"🟡 Local device only"} | Van Hall Larenstein
+            </div>
           </div>
         </div>
         <div style={{display:"flex",gap:10}}>
+          <button onClick={()=>window.location.reload()} style={{padding:"8px 18px",background:"rgba(255,255,255,0.1)",color:C.white,border:"1.5px solid rgba(255,255,255,0.2)",borderRadius:8,fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>🔄 Refresh</button>
           <button onClick={exportCSV} style={{padding:"8px 18px",background:C.gold,color:C.white,border:"none",borderRadius:8,fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>⬇ Export CSV</button>
           <button onClick={onBack} style={{padding:"8px 18px",background:"rgba(255,255,255,0.1)",color:C.white,border:"1.5px solid rgba(255,255,255,0.2)",borderRadius:8,fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>← Survey</button>
         </div>
@@ -231,7 +294,6 @@ function Analytics({responses,onBack}){
               </BarChart>
             </ResponsiveContainer>
           </Card>
-
           <Card title="Most Influential Nutrition Claims (Selected by Respondents)" accent={C.blue}>
             <ResponsiveContainer width="100%" height={200}>
               <BarChart data={claimChecks} layout="vertical" margin={{left:0,right:8}}>
@@ -250,13 +312,11 @@ function Analytics({responses,onBack}){
               <PieChart><Pie data={labelPref} dataKey="value" cx="50%" cy="50%" outerRadius={60} label={({percent})=>`${(percent*100).toFixed(0)}%`} labelLine={false} fontSize={10}>{labelPref.map((_,i)=><Cell key={i} fill={PIES[i]}/>)}</Pie><Tooltip formatter={v=>[v,"Responses"]} contentStyle={{borderRadius:8,fontSize:12}}/><Legend iconSize={10} wrapperStyle={{fontSize:9}}/></PieChart>
             </ResponsiveContainer>
           </Card>
-
           <Card title="No Added Sugars / Stevia Impact on Purchase" accent={C.gold}>
             <ResponsiveContainer width="100%" height={190}>
               <PieChart><Pie data={sugarImpact} dataKey="value" cx="50%" cy="50%" outerRadius={60} label={({percent})=>`${(percent*100).toFixed(0)}%`} labelLine={false} fontSize={10}>{sugarImpact.map((_,i)=><Cell key={i} fill={PIES[i]}/>)}</Pie><Tooltip formatter={v=>[v,"Responses"]} contentStyle={{borderRadius:8,fontSize:12}}/><Legend iconSize={10} wrapperStyle={{fontSize:9}}/></PieChart>
             </ResponsiveContainer>
           </Card>
-
           <Card title="Max Willingness to Pay per 7g Sachet" accent={C.orange}>
             <ResponsiveContainer width="100%" height={190}>
               <BarChart data={priceData} margin={{left:-20}}>
@@ -299,16 +359,10 @@ export default function App(){
   const [view,setView]=useState("survey");
   const [section,setSection]=useState(0);
   const [answers,setAnswers]=useState({});
-  const [responses,setResponses]=useState([]);
   const [errors,setErrors]=useState([]);
+  const [submitting,setSubmitting]=useState(false);
 
-  useEffect(()=>{
-    try{const saved=localStorage.getItem("gj_nutrition_v1");if(saved)setResponses(JSON.parse(saved));}catch{}
-  },[]);
-
-  const save=rs=>{try{localStorage.setItem("gj_nutrition_v1",JSON.stringify(rs));}catch{}};
-
-  if(view==="analytics") return <Analytics responses={responses} onBack={()=>setView("survey")}/>;
+  if(view==="analytics") return <Analytics onBack={()=>setView("survey")}/>;
 
   const sec=SECTIONS[section];
   const total=SECTIONS.length;
@@ -324,11 +378,25 @@ export default function App(){
     return missing.length===0;
   };
 
-  const next=()=>{
+  const next=async()=>{
     if(!validate())return;
     setErrors([]);
     if(section<total-1){setSection(s=>s+1);window.scrollTo(0,0);}
-    else{const rs=[...responses,{...answers,ts:new Date().toISOString()}];setResponses(rs);save(rs);setView("done");}
+    else{
+      setSubmitting(true);
+      const data={...answers,ts:new Date().toISOString()};
+      const ok=await submitResponse(data);
+      if(!ok){
+        // fallback to localStorage if API not available
+        try{
+          const saved=localStorage.getItem("gj_nutrition_v1");
+          const existing=saved?JSON.parse(saved):[];
+          localStorage.setItem("gj_nutrition_v1",JSON.stringify([...existing,data]));
+        }catch{}
+      }
+      setSubmitting(false);
+      setView("done");
+    }
   };
 
   if(view==="done") return(
@@ -418,8 +486,8 @@ export default function App(){
             ← Back
           </button>
           <span style={{fontSize:12,color:C.grey}}>{pct}% complete</span>
-          <button onClick={next} style={{padding:"11px 26px",background:sec.color||C.forest,color:C.white,border:"none",borderRadius:10,fontWeight:700,cursor:"pointer",fontFamily:"inherit",fontSize:13,boxShadow:`0 4px 16px ${sec.color||C.forest}44`}}>
-            {section===total-1?"Submit ✓":"Next →"}
+          <button onClick={next} disabled={submitting} style={{padding:"11px 26px",background:sec.color||C.forest,color:C.white,border:"none",borderRadius:10,fontWeight:700,cursor:submitting?"wait":"pointer",fontFamily:"inherit",fontSize:13,boxShadow:`0 4px 16px ${sec.color||C.forest}44`,opacity:submitting?0.7:1}}>
+            {submitting?"Saving...":section===total-1?"Submit ✓":"Next →"}
           </button>
         </div>
       </div>
