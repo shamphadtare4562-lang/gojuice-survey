@@ -87,16 +87,7 @@ const SECTIONS = [
       {id:"q20",type:"checkbox",text:"Which phrases would you most want to see on a GoJuice label in addition to nutrition claims? (Select all that apply)",options:["'Made from upcycled fruits and herbs'","'Naturally occurring digestive enzymes'","'No pills. No chemicals. Just nature.'","'Dissolves in water in under 30 seconds'","'Suitable for all ages'","'EFSA compliant claims'","'Produced in the Netherlands'"]},
     ]
   },
-  {
-    id:"purchase", title:"Purchase Intent", icon:"🛍️", color:C.orange,
-    questions:[
-      {id:"q21",type:"scale",text:"After reading the nutrition claims 'Source of fibre, Source of Vitamin C, No added sugars, Low calorie' — how likely are you to purchase GoJuice at an airport priced at €3.50 for a single sachet?"},
-      {id:"q22",type:"radio",text:"Compared to a similar digestive pill priced at €4.00, how does GoJuice's natural powder with these nutrition claims compare in value?",options:["Much better value — natural format with clear nutrition claims is more appealing","Slightly better value — I prefer natural over pills","About the same","Slightly worse value — I prefer the convenience of a pill","Much worse value — I don't see the benefit over a standard supplement"]},
-      {id:"q23",type:"radio",text:"Would you be more likely to buy GoJuice if it displayed official EU nutrition claim certifications visibly on the front of the pack?",options:["Yes — significantly more likely","Yes — slightly more likely","No difference","No — certifications do not affect my trust in food products"]},
-      {id:"q24",type:"radio",text:"What is the maximum you would pay for a GoJuice 7g travel sachet at an airport given these nutrition claims?",options:["€1.50 – €2.50","€2.50 – €3.50","€3.50 – €5.00","More than €5.00","I would not buy it"]},
-      {id:"q25",type:"text",text:"Is there any nutrition claim or label information that would make you immediately trust and buy GoJuice without reading further? (Optional)",optional:true},
-    ]
-  }
+
 ];
 
 function ScaleInput({value,onChange,accent=C.forest}){
