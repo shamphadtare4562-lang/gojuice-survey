@@ -157,10 +157,40 @@ function CheckboxInput({options,value=[],onChange,accent=C.forest}){
   );
 }
 
+const ANALYTICS_PASSWORD = "gojuice2026";
+
 function Analytics({onBack}){
+  const [unlocked,setUnlocked]=useState(false);
+  const [pw,setPw]=useState("");
+  const [pwError,setPwError]=useState(false);
   const [responses,setResponses]=useState([]);
   const [loading,setLoading]=useState(true);
   const [source,setSource]=useState("shared");
+
+  if(!unlocked) return(
+    <div style={{minHeight:"100vh",background:`linear-gradient(135deg,${C.forestDark},${C.forestLight})`,display:"flex",alignItems:"center",justifyContent:"center",padding:24}}>
+      <div style={{background:C.white,borderRadius:24,padding:48,maxWidth:380,width:"100%",textAlign:"center",boxShadow:"0 16px 64px rgba(0,0,0,0.2)"}}>
+        <div style={{fontSize:48,marginBottom:12}}>🔒</div>
+        <h2 style={{fontSize:22,fontWeight:900,color:C.forestDark,marginBottom:8}}>Results Access</h2>
+        <p style={{fontSize:13,color:C.grey,marginBottom:24,lineHeight:1.6}}>This dashboard is restricted. Enter the password to view survey results.</p>
+        <input
+          type="password"
+          value={pw}
+          onChange={e=>{setPw(e.target.value);setPwError(false);}}
+          onKeyDown={e=>{if(e.key==="Enter"){if(pw===ANALYTICS_PASSWORD){setUnlocked(true);}else{setPwError(true);setPw("")}}}}
+          placeholder="Enter password"
+          style={{width:"100%",padding:"12px 16px",border:`2px solid ${pwError?C.red:C.greyLight}`,borderRadius:10,fontSize:14,fontFamily:"inherit",outline:"none",boxSizing:"border-box",marginBottom:8,textAlign:"center",color:C.slate}}
+          autoFocus
+        />
+        {pwError&&<p style={{fontSize:12,color:C.red,margin:"0 0 8px"}}>Incorrect password. Try again.</p>}
+        <button onClick={()=>{if(pw===ANALYTICS_PASSWORD){setUnlocked(true);}else{setPwError(true);setPw("");}}}
+          style={{width:"100%",padding:"12px",background:C.forest,color:C.white,border:"none",borderRadius:10,fontWeight:700,fontSize:14,cursor:"pointer",fontFamily:"inherit",marginTop:4}}>
+          Unlock Results →
+        </button>
+        <button onClick={onBack} style={{marginTop:12,background:"none",border:"none",color:C.grey,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>← Back to survey</button>
+      </div>
+    </div>
+  );
 
   useEffect(()=>{
     async function load(){
