@@ -168,7 +168,6 @@ function Analytics({onBack}){
   const [source,setSource]=useState("shared");
 
   useEffect(()=>{
-    if(!unlocked) return;
     async function load(){
       setLoading(true);
       const shared=await fetchResponses();
@@ -180,7 +179,7 @@ function Analytics({onBack}){
       setLoading(false);
     }
     load();
-  },[]);
+  },[unlocked]);
 
   const n=responses.length;
 
